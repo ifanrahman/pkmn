@@ -1,135 +1,118 @@
-# to build this image (depends on your docker engine)
-- docker-compose -f docker-compose.build.yml build
-- docker compose -f docker-compose.build.yml build
-
-# in offline servers, just load the pkmn.tar.gz image into a docker image
-- gunzip pkmn.tar.gz
-- docker load -i pkmn.tar
-
-# to play (depends on your docker engine)
-- docker-compose -f docker-compose.yml run --rm --user "$(id -u):$(id -g)" pokemon
-- docker compose -f docker-compose.yml run --rm --user "$(id -u):$(id -g)" pokemon
-
 # Pokemon Text Based Java Edition (pokemon-tbje)
 ![title_img.png](resources/title_img.png)
 
-**A terminal-based Pokémon battle game, written in Java, complete with 241 species, faithful game mechanics, adjustable difficulty, dynamic AI, procedurally generated opponents, random wild encounters, competitive battles, and custom graphics. Built from scratch over 2 months.**
+**A terminal-based Pokémon battle game, written in Java, complete with 241 species, faithful game mechanics, adjustable difficulty, dynamic AI, procedurally generated opponents, random wild encounters, competitive battles, and custom graphics.**
+
+## Deploy via Docker (build → export → offline server → run)
+
+**1. Build the image** (on a machine with internet access + Docker):
+```bash
+docker compose -f docker-compose.build.yml build
+```
+
+**2. Export the image** for transfer to an offline server:
+```bash
+docker save pokemon-tbje_pokemon:latest | gzip > pkmn.tar.gz
+```
+
+**3. Copy `pkmn.tar.gz` to the offline server** (e.g. via `scp`, USB drive, etc.), then load it:
+```bash
+gunzip pkmn.tar.gz
+docker load -i pkmn.tar
+```
+
+**4. Run the game** on the offline server:
+```bash
+docker compose -f docker-compose.yml run --rm --user "$(id -u):$(id -g)" pokemon
+```
+Saves persist to `./saves` on the host (mounted as a volume).
+
+## Build & Run Locally (without Docker)
+Requires Java 25 and Maven.
+```bash
+git clone https://github.com/zachMahan64/pokemon-tbje.git
+cd pokemon-tbje
+mvn clean package
+java -jar target/pokemon_tbje-1.0.jar
+```
+Optional alias for quick launching (edit the path to match your clone location):
+```bash
+echo 'alias pkm="cd ~/<path/to>/pokemon-tbje/ && java -jar target/pokemon_tbje-1.0.jar"' >> ~/.bashrc
+source ~/.bashrc
+pkm
+```
+
+## Running a Release .jar
+Download the jar from the Releases section, ensure Java 25 is installed, then:
+```bash
+cd <path/to/your/jar>
+java -jar target/pokemon_tbje-1.0.jar
+```
+
+## Terminal Tips
+- Terminal size: at least ~70 rows x 120 columns
+- Font size < 14.0, line spacing 1.0, monospaced font (crucial for correct graphics proportions)
+- Works best on Mac/Linux terminals; on Windows, try MSYS2 to avoid character-spacing issues
 
 ## Features
 - 241 Pokémon with stats, types, evolutions, moves, and sprites
 - Real battle mechanics: type matchups, stat changes, status effects, weather
-- Smart AI trained via custom in-engine ML multi-threaded simulation
-- Dynamic difficulty scaling, procedurally generated trainers/opponents
-- Full single-player campaign: gym leaders, wild encounters, Team Rocket, Colosseum, and Elite Four
-- Improved money system: Proper bank, loans, stocks, gold assets, and a casino with playable mini-games!
-- Terminal UI using Unicode + ANSI escape strings
-- Catching system, items, switching, trick room, and more
+- Smart AI trained via custom in-engine ML multi-threaded simulation, with adjustable difficulty
+- Full single-player campaign: gym leaders, wild encounters, Team Rocket, Colosseum, Elite Four
+- Economy: bank, loans, stocks, gold assets, and a casino with playable mini-games
+- Terminal UI using Unicode + ANSI escape strings, with dot-matrix sprite art
+- Background music & sound effects via JavaFX
 - Save file system to track all progress
-
-
-## Running a Release .jar
-- Download the latest release from the releases section on the repo.
-- Make sure you have Java 25 installed before trying to run the jar.
-- Before moving forward, put the downloaded jar somewhere you're happy with in your filesystem.
-- Open your terminal:
-```bash
-cd <path/to/your/jar/>
-# we'll set up a convenient alias, which will also make sure save-loading is consistent (also, edit the path below, it has to be right!):
-echo 'alias pkm="cd <path/to/your/jar> && java -jar target/pokemon_tbje-1.0.jar"' >> ~/.bashrc # or ~/.zshrc, etc.
-source ~/.bashrc # or ~/.zshrc, etc. 
-# now you can do this to play anytime:
-pkm
-```
-- If running the jar doesn't work for you for whatever reason, try to build it with Maven in the following section.
-## Build and Run
-Open your terminal: 
-```bash
-cd <where/you/keep/java/projects>
-git clone https://github.com/zachMahan64/pokemon-tbje.git
-# make sure you have the latest versions of Java and Maven before proceeding:
-java --version # should say >= Java 25
-mvn --version  # ^ same
-cd pokemon-tbje
-mvn clean package
-java -jar target/pokemon_tbje-1.0.jar
-# add this alias (POSIX only) for ease, if you want (also, edit the path below, it has to be right!):
-echo 'alias pkm="cd ~/<path/to>/pokemon-tbje/ && java -jar target/pokemon_tbje-1.0.jar"' >> ~/.bashrc # or ~/.zshrc, etc.
-source ~/.bashrc # or ~/.zshrc, etc. 
-# now you can do this to play anytime:
-pkm
-```
-Note: saves are always loaded in `saves/` *parallel* to the directory you start up pkm-tbje! The alias provided above handles this consistently for you.
-Tips:
-- Make sure:
-  - your terminal is at least ~ 70 x 120 characters (adjust to your own liking, though) 
-  - your terminal font is size is < 14.0 (not too important as long as you have at least ~70 rows) and line spacing is set to 1.0 (crucial for visual proportions)!
-  - you're using a mono-spaced font for proper graphics proportions
 
 ## AI Engine
 - Analyzes matchups in real-time based on game state and 30+ engine parameters
-- Trained with smart parameter tweaking algorithm which uses 1-prop z-tests to check for statistical significance on improvements from parameter tweaks
-- Scores moves and switches with a point total system
-- Provides live move/switch recommendations & shows match-up & move ratings
-- Allows player to run battle simulations mid-game to estimate win probabilities
-- Opposing trainers never blunder on `PROFESSIONAL` difficulty (except for an intentional .1% of the time). Trainers in `CHALLENGE` are similarly smart most of the time but choose 2nd and 3rd best moves more often. In `NORMAL`, they choose less optimal moves more often, and, in `EASY`, they choose nearly random moves.
-- This was probably the hardest part of the entire game to program (besides, well, writing the entire battle logic for Pokémon from scratch)
-- **See screenshot section for the game analysis interface**
-
-## Visuals & Audio
-- Uses Unicode braille characters as pixel-art dot matrices. Also uses ANSI escape strings for color.
-- All coloring was done by hand (painfully).
-- Dot-converted Pokémon, trainer, and location images. Used: https://emojicombos.com/dot-art-generator (amazing website, btw).
-- Background music & sound effects via JavaFX (YouTube-sourced MP3s and waveforms, I do not own the rights)
-- Over 50 soundtracks and sound effects are in the game!
-- Disclaimer: All assets used for educational purposes.
-- **See screenshot section to view visuals for yourself**
-
-## Platform Support
-- Works best on **Mac/Linux** terminals.
-- Windows' terminal may clobber the visuals a bit due to character spacing issues. Try using MSYS2 on Windows!
-- Potential build issues: the build will fail if Java or Maven are not pointing to open-jdk-25. Ensure Java 25 is installed on your computer.
+- Trained with a statistical (1-prop z-test) parameter-tweaking algorithm
+- Scores moves/switches and gives live recommendations & win-probability simulations
+- Difficulty scales trainer optimality: `PROFESSIONAL` rarely blunders, `EASY` is near-random
 
 ## Notes
-- This was my first large coding project. The codebase isn't great (in quite a few places). A lot of it has been painstakingly refactored, though.
-- Project on hold for now, but might revisit in the future!
+- Assets (MP3s/sprites) are YouTube-sourced/dot-art-generated and used for educational purposes only; all rights belong to their owners.
+- This was a first large coding project — parts of the codebase are rough but have been refactored over time.
+- Project is on hold, but may be revisited in the future.
+
 ## Screenshots
 ![battle_sim_demo.png](resources/battle_sim_demo.png)
-^ see the match-up analysis interface (and our shiny charizard)
+^ match-up analysis interface (and our shiny charizard)
 ![map.png](resources/map.png)
-^ map coloring isn't completely finished (manually inserting ansi escape strings is quite tedious)
+^ map view
 ![move_ratings_demo.png](resources/move_ratings_demo.png)
-^ see move rating interface
+^ move rating interface
 ![rocketopolis.png](resources/rocketopolis.png)
-^ see the largest among the game's cities; there are a lot of activities to do
+^ the largest city in the game
 ![south_kanto_sea.png](resources/south_kanto_sea.png)
-^ route 19 (a water route along the sea)
+^ route 19, a water route along the sea
 ![squirtle_vs_celebi.ong.png](resources/squirtle_vs_celebi.ong.png)
-^ lvl 5 squirtle vs lvl 40 celebi; match-up doesn't look great for us
+^ lvl 5 squirtle vs lvl 40 celebi
 ![the_colosseum_outside.png](resources/the_colosseum_outside.png)
-^ the outside of the battle colosseum, fun
+^ outside of the battle colosseum
 ![the_colosseum_demo.png](resources/the_colosseum_demo.png)
-^ the inside of the colosseum, this is a long battle rush where opponents' parties scale to your party's size, level, and stats. you get progressively more BP (battle points) as your win streak increases and you can steal one of your opponent's pokemon in each battle after reaching 25 record wins in a row. this is a quick way to get many rare pokemon.
+^ inside the colosseum — a battle rush where opponent parties scale with yours
 ![play_menu.png](resources/play_menu.png)
-^ play menu -> open map to go to locations, etc. see badges, level cap, reputation, etc are tracked. the date is based on the in-game storyline. the difficulty is shown ('PROFESSIONAL' is the hardest with the smartest opponents). 
+^ play menu — badges, level cap, reputation, in-game date, and difficulty
 ![tyranitar_vs_venusaur.png](resources/tyranitar_vs_venusaur.png)
-^ tyranitar vs venusaur; doesn't look good for us, we should switch to mewtwo!
+^ tyranitar vs venusaur
 ![vaughan_distric_gyn.png](resources/vaughan_distric_gyn.png)
-^ exterior of a gym
+^ gym exterior
 ![viridian_city_gym.png](resources/viridian_city_gym.png)
 ^ another gym exterior
 ![blastoise_vs_dragonite.png](resources/blastoise_vs_dragonite.png)
 ^ blastoise vs dragonite
 ![giovanni.png](resources/giovanni.png)
-^ Giovanni, one of the hardest gym leaders you face
+^ Giovanni, one of the hardest gym leaders
 ![party_selection_screen.png](resources/party_selection_screen.png)
-^ what you see when you have to switch in a battle. here, the engine is saying to switch to mewtwo!
+^ switching party members mid-battle
 ![pikachu_last_hope.png](resources/pikachu_last_hope.png)
-^ pikachu, save us! see how he's our last pokemon left (as indicated by `oxxxxx`). `o` is our alive pikachu and each `x` is a fainted party member!
+^ last pokemon standing, indicated by `oxxxxx`
 ![pokedex.png](resources/pokedex.png)
-^ the pokedex menu!
+^ the pokedex menu
 ![pokedex_list.png](resources/pokedex_list.png)
-^ list of all pokemon in the pokedex; red is uncaught and green are caught pokemon.
+^ pokedex list — red is uncaught, green is caught
 ![mew_pkdx.png](resources/mew_pkdx.png)
-^ searching up mew in pokedex! look at all that sweet data
+^ pokedex entry for mew
 ![secret_shop.png](resources/secret_shop.png)
-^ an unassuming hot dog stand that doubles as a way to purchase pokemon (totally not a black market)
+^ an unassuming hot dog stand that doubles as a pokemon black market

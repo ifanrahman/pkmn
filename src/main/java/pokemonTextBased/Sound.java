@@ -13,13 +13,27 @@ import java.util.HashMap;
 public class Sound {
     public static boolean disableSound = false;
 
+    // Set once a Clip/MediaPlayer failure proves this environment has no usable
+    // audio output (e.g. no sound card). Prevents repeated noisy stack traces.
+    private static boolean audioUnavailable = false;
+    private static boolean warnedAudioUnavailable = false;
+
     private static final HashMap<String, Clip> clips = new HashMap<>();
     private static final HashMap<String, MediaPlayer> mediaPlayers = new HashMap<>();
     private static final HashMap<String, Boolean> loopingClips = new HashMap<>();
     private static final HashMap<String, Boolean> loopingMedia = new HashMap<>();
 
+    private static void markAudioUnavailable() {
+        audioUnavailable = true;
+        if (!warnedAudioUnavailable) {
+            warnedAudioUnavailable = true;
+            System.out.println("No audio output device available on this system - sound disabled.");
+        }
+    }
+
     public static void loadSound(String resourcePath) {
         if (resourcePath.endsWith(".mp3")) return; // MP3s streamed, not preloaded
+        if (audioUnavailable) return;
         try {
             if (clips.containsKey(resourcePath)) return;
 
@@ -33,6 +47,8 @@ public class Sound {
             Clip clip = AudioSystem.getClip();
             clip.open(audioStream);
             clips.put(resourcePath, clip);
+        } catch (LineUnavailableException e) {
+            markAudioUnavailable();
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Error loading WAV sound: " + resourcePath);
@@ -40,7 +56,7 @@ public class Sound {
     }
 
     public static void playSoundOnce(String resourcePath) {
-        if (disableSound) return;
+        if (disableSound || audioUnavailable) return;
 
         if (resourcePath.endsWith(".mp3")) {
             playMP3(resourcePath, false);
@@ -64,6 +80,8 @@ public class Sound {
                     clip.close();
                 }
             });
+        } catch (LineUnavailableException e) {
+            markAudioUnavailable();
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Error playing WAV sound: " + resourcePath);
@@ -71,7 +89,7 @@ public class Sound {
     }
 
     public static void playMusicOnLoop(String resourcePath) {
-        if (disableSound) return;
+        if (disableSound || audioUnavailable) return;
 
         if (resourcePath.endsWith(".mp3")) {
             MediaPlayer existing = mediaPlayers.get(resourcePath);
@@ -96,6 +114,7 @@ public class Sound {
     }
 
     private static void playMP3(String resourcePath, boolean loop) {
+        if (audioUnavailable) return;
         try {
             MediaPlayer existing = mediaPlayers.get(resourcePath);
             if (existing != null) {
@@ -134,6 +153,8 @@ public class Sound {
 
             mediaPlayer.play();
             mediaPlayers.put(resourcePath, mediaPlayer);
+        } catch (javafx.scene.media.MediaException e) {
+            markAudioUnavailable();
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Error playing MP3: " + resourcePath);
