@@ -1,6 +1,7 @@
 services:
   pokemon:
     build: .
+    image: pokemon-tbje_pokemon:latest
     container_name: pokemon-tbje
     working_dir: /app
     stdin_open: true
