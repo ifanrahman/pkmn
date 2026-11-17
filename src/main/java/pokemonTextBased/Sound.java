@@ -47,7 +47,7 @@ public class Sound {
             Clip clip = AudioSystem.getClip();
             clip.open(audioStream);
             clips.put(resourcePath, clip);
-        } catch (LineUnavailableException e) {
+        } catch (LineUnavailableException | IllegalArgumentException e) {
             markAudioUnavailable();
         } catch (Exception e) {
             e.printStackTrace();
@@ -80,7 +80,7 @@ public class Sound {
                     clip.close();
                 }
             });
-        } catch (LineUnavailableException e) {
+        } catch (LineUnavailableException | IllegalArgumentException e) {
             markAudioUnavailable();
         } catch (Exception e) {
             e.printStackTrace();
